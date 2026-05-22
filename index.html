@@ -1317,16 +1317,21 @@ async function callClaude(agent, messages) {
 }
 
 async function callClaudeRaw(systemPrompt, userContent) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1200,
       system: systemPrompt,
       messages: [{ role: 'user', content: userContent }]
     })
   });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `API error: ${response.status}`);
+  }
+  const data = await response.json();
+  return data.text;
+}
   if (!response.ok) throw new Error(`API error: ${response.status}`);
   const data = await response.json();
   return data.content.map(c => c.text || '').join('');
