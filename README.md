@@ -1,81 +1,69 @@
 # 🐧 First Penguin Agent
 
-先駆者を育成する4つのAIエージェントシステム。
+先駆者を育成する4つのAIエージェント＋3つのツールのシステム。
+エージェント一覧
+エージェント	担当ルール	役割
+--------------------------------------------------------------
+🔴 平均解棄却エージェント	①②	凡庸な案を退け、極端まで考え抜かせる
+🔵 背景読解エージェント	③④⑤	構造・背景・取り残される人を読み解く
+🟢 実践設計エージェント	⑥⑦	小さく試す実験を設計し、失敗を学びに変える
+🟡 先駆者育成コーチ	⑧	松岡修造スタイルで野心を燃やし続ける
+---------------------------------------------------------------
+先駆者の8つのルール
+常に疑問を持ち、違和感を握りつぶすな
+平凡な案を退け、極端まで考え抜け
+構造で見ろ、個人で見るな
+立場の違う人の背景を読め
+誰が得し、誰が取り残されるか考えろ
+自分で実践してから語れ
+小さく試して、失敗を学びに変えろ
+野心を持ち続け、不合理な秩序を書き換えろ
 
-## エージェント一覧
-
-| エージェント | 役割 |
-|---|---|
-| 🔴 平均解棄却エージェント | 凡庸なアイデアを容赦なく棄却し、別角度を要求 |
-| 🟠 極端思考ブースター | 思考を左右に振り切り、発想の限界を押し広げる |
-| 🟡 先駆者育成コーチ | 松岡修造スタイルで魂から鼓舞する |
-| 🔵 構造更新ナビゲーター | 個人の工夫を業界・組織の構造変化へ引き上げる |
-
+ツール一覧
+ツール	機能
+🔵 STAKEHOLDER MAP	変化に対して「得する人・取り残される人・抵抗する人」を可視化
+🟢 実験設計	最小実験・測定基準・失敗シナリオ・次の仮説を設計
+🔴 失敗ログ	失敗体験から構造的な学びを抽出して蓄積
+エージェント間引き継ぎ機能
+チャット画面の「引き継ぎ ▾」ボタンで、会話の文脈を別エージェントへワンクリックで渡せる。
+例：平均解棄却 → 背景読解 → 実践設計 の順に深掘りする
 ---
-
-## デプロイ手順（Vercel）
-
-### 1. 必要なもの
-- [GitHubアカウント](https://github.com)
-- [Vercelアカウント](https://vercel.com)（無料）
-- [Anthropic APIキー](https://console.anthropic.com)
-
-### 2. GitHubにプッシュ
-
-```bash
-git init
-git add .
-git commit -m "first commit"
-git branch -M main
-git remote add origin https://github.com/あなたのユーザー名/first-penguin-agent.git
-git push -u origin main
+デプロイ手順（Vercel）
+1. 必要なもの
+GitHubアカウント
+Vercelアカウント（無料）
+Anthropic APIキー
+2. GitHubにアップロード
+GitHubで新しいリポジトリを作成
+「uploading an existing file」からZIP内の以下をアップロード：
+`index.html`
+`api/`（フォルダごと）
+`vercel.json`
+`package.json`
+`README.md`
+※ ZIPを展開後、`first-penguin-agent` フォルダの中身だけをアップロードすること
+3. Vercelにデプロイ
+vercel.com にログイン
+「Add New Project」→ GitHubのリポジトリを選択してインポート
+Environment Variables に以下を追加：
 ```
-
-### 3. Vercelにデプロイ
-
-1. [vercel.com](https://vercel.com) にログイン
-2. **「Add New Project」** をクリック
-3. GitHubのリポジトリを選択してインポート
-4. **Environment Variables** に以下を追加：
-   ```
    Name:  ANTHROPIC_API_KEY
-   Value: sk-ant-xxxxxxxxxxxx  ← あなたのAPIキー
+   Value: sk-ant-xxxxxxxxxxxx
    ```
-5. **「Deploy」** をクリック
-
-### 4. 完了 🎉
-
-デプロイ完了後、発行されたURL（例: `https://first-penguin-agent.vercel.app`）を共有するだけ！
-
+「Deploy」をクリック
+4. 完了 🎉
+発行されたURL（例: `https://first-penguin-agent.vercel.app`）を共有するだけ！
 ---
-
-## ローカルで動かす場合
-
-```bash
-npm i -g vercel
-vercel dev
-```
-
-`.env` ファイルを作成：
-```
-ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxx
-```
-
----
-
-## プロジェクト構成
-
+プロジェクト構成
 ```
 first-penguin-agent/
+├── index.html       # フロントエンド（APIキーなし）
 ├── api/
-│   └── chat.js          # サーバーレス関数（APIキーを安全に保管）
-├── public/
-│   └── index.html       # フロントエンド
-├── vercel.json          # Vercel設定
+│   └── chat.js      # サーバーレス関数（APIキーをサーバー側で管理）
+├── vercel.json      # Vercel設定
+├── package.json
 └── README.md
 ```
-
-## 注意
-
+注意
 APIキーは絶対にフロントエンドのコードに書かないでください。
 このプロジェクトはAPIキーをサーバーレス関数（`api/chat.js`）側で管理し、フロントエンドには露出しない構造になっています。
