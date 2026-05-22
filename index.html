@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIRST PENGUIN — 先駆者育成システム</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@300;400;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --border: #222222;
+    --accent-red: #ff2d2d;
+    --accent-orange: #ff7700;
+    --accent-yellow: #ffe600;
+    --accent-blue: #00d4ff;
+    --accent-green: #00ff88;
+    --text: #f0f0f0;
+    --text-dim: #666;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  header {
+    position: relative;
+    z-index: 10;
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgba(10,10,10,0.98);
+    height: 60px;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    letter-spacing: 0.08em;
+    background: linear-gradient(135deg, var(--accent-red), var(--accent-orange), var(--accent-yellow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .tagline {
+    font-size: 0.6rem;
+    font-weight: 300;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    border-left: 1px solid var(--border);
+    padding-left: 16px;
+    line-height: 1.6;
+  }
+
+  /* ツールタブ（ヘッダー右） */
+  .header-tools {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .tool-tab {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .tool-tab:hover { border-color: #555; color: var(--text); }
+  .tool-tab.active { border-color: var(--accent-green); color: var(--accent-green); }
+
+  /* メインレイアウト */
+  .main {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    height: calc(100vh - 60px);
+  }
+
+  /* サイドバー */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .sidebar-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.3em;
+    color: var(--text-dim);
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+  }
+
+  .agent-list { flex: 1; overflow-y: auto; }
+
+  .agent-card {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .agent-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--agent-color);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .agent-card:hover::before, .agent-card.active::before { opacity: 1; }
+  .agent-card:hover, .agent-card.active { background: rgba(255,255,255,0.04); }
+
+  .agent-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: var(--agent-color);
+    opacity: 0.25;
+    position: absolute;
+    right: 12px; top: 8px;
+    transition: opacity 0.2s;
+  }
+
+  .agent-card:hover .agent-num, .agent-card.active .agent-num { opacity: 0.5; }
+
+  .agent-name {
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    color: var(--agent-color);
+    margin-bottom: 3px;
+  }
+
+  .agent-desc {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    line-height: 1.4;
+    font-weight: 300;
+  }
+
+  .all-mode-btn {
+    margin: 10px;
+    padding: 9px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .all-mode-btn:hover, .all-mode-btn.active {
+    border-color: var(--accent-yellow);
+    color: var(--accent-yellow);
+    background: rgba(255,230,0,0.05);
+  }
+
+  /* コンテンツエリア（チャット or ツール） */
+  .content-area {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* チャットパネル */
+  .chat-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .chat-panel.hidden { display: none; }
+
+  .agent-header {
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(10,10,10,0.9);
+    min-height: 48px;
+    flex-shrink: 0;
+  }
+
+  .agent-indicator {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .agent-header-name {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  .agent-header-role {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    margin-left: auto;
+  }
+
+  /* 引き継ぎボタン */
+  .handoff-btn {
+    margin-left: 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.52rem;
+    letter-spacing: 0.12em;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .handoff-btn:hover {
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+  }
+
+  /* 引き継ぎパネル */
+  .handoff-panel {
+    display: none;
+    position: absolute;
+    top: 48px; right: 0;
+    width: 280px;
+    background: #1a1a1a;
+    border: 1px solid var(--border);
+    border-top: none;
+    z-index: 100;
+    padding: 14px;
+  }
+
+  .handoff-panel.open { display: block; }
+
+  .handoff-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    color: var(--accent-green);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  .handoff-agents {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .handoff-agent-btn {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 0.72rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .handoff-agent-btn:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: #444;
+  }
+
+  .handoff-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .message { display: flex; gap: 12px; animation: fadeUp 0.25s ease; }
+  .message.user { flex-direction: row-reverse; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    letter-spacing: 0.05em;
+  }
+
+  .avatar.user-av { background: var(--border); color: var(--text-dim); font-size: 0.6rem; letter-spacing: 0.1em; }
+
+  .bubble {
+    max-width: 72%;
+    padding: 12px 16px;
+    line-height: 1.7;
+    font-size: 0.82rem;
+    font-weight: 300;
+  }
+
+  .bubble.user-bubble {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text);
+    margin-left: auto;
+  }
+
+  .bubble.agent-bubble {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid;
+    border-color: color-mix(in srgb, var(--msg-color) 20%, transparent);
+    border-left: 3px solid var(--msg-color);
+    color: var(--text);
+  }
+
+  .agent-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.5rem;
+    letter-spacing: 0.2em;
+    color: var(--msg-color);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    opacity: 0.8;
+  }
+
+  .bubble-content { white-space: pre-wrap; }
+
+  /* 引き継ぎ通知バナー */
+  .handoff-notice {
+    background: rgba(0,255,136,0.06);
+    border: 1px solid rgba(0,255,136,0.2);
+    border-left: 3px solid var(--accent-green);
+    padding: 8px 14px;
+    font-size: 0.7rem;
+    color: var(--accent-green);
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.1em;
+    animation: fadeUp 0.25s ease;
+  }
+
+  /* 入力エリア */
+  .input-area {
+    border-top: 1px solid var(--border);
+    padding: 16px 24px;
+    background: rgba(10,10,10,0.98);
+    flex-shrink: 0;
+  }
+
+  .input-row { display: flex; gap: 10px; align-items: flex-end; }
+
+  textarea {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 300;
+    padding: 10px 14px;
+    resize: none;
+    min-height: 44px;
+    max-height: 120px;
+    line-height: 1.6;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus { border-color: var(--focus-color, #555); }
+  textarea::placeholder { color: var(--text-dim); }
+
+  .send-btn {
+    height: 44px;
+    padding: 0 18px;
+    background: transparent;
+    border: 1px solid var(--btn-color, #555);
+    color: var(--btn-color, #555);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.95rem;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .send-btn:hover { background: var(--btn-color, #555); color: #000; }
+  .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .send-btn:disabled:hover { background: transparent; color: var(--btn-color, #555); }
+
+  .input-hint {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.5rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    margin-top: 6px;
+  }
+
+  /* ローディング */
+  .loading-dots { display: flex; gap: 5px; align-items: center; padding: 4px 0; }
+  .loading-dots span {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--msg-color, #555);
+    animation: dot-bounce 1.2s infinite;
+  }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes dot-bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
+    40% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* ツールパネル */
+  .tool-panel {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .tool-panel.active { display: flex; }
+
+  .tool-header {
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,10,0.9);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .tool-header-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.1em;
+    color: var(--accent-green);
+  }
+
+  .tool-header-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    margin-left: auto;
+  }
+
+  .tool-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* ステークホルダーマップ */
+  .stakeholder-form { display: flex; flex-direction: column; gap: 14px; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+
+  .form-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .form-input, .form-textarea {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 300;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  .form-input:focus, .form-textarea:focus { border-color: var(--accent-green); }
+  .form-textarea { resize: vertical; min-height: 70px; line-height: 1.6; }
+
+  .tool-btn {
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid var(--accent-green);
+    color: var(--accent-green);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: all 0.2s;
+    align-self: flex-start;
+  }
+
+  .tool-btn:hover { background: var(--accent-green); color: #000; }
+  .tool-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .tool-btn:disabled:hover { background: transparent; color: var(--accent-green); }
+
+  /* ステークホルダーマップ結果 */
+  .stakeholder-map {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+    animation: fadeUp 0.3s ease;
+  }
+
+  .stakeholder-col {
+    border: 1px solid;
+    padding: 14px;
+  }
+
+  .stakeholder-col.gain { border-color: rgba(0,255,136,0.3); }
+  .stakeholder-col.left { border-color: rgba(255,45,45,0.3); }
+  .stakeholder-col.resist { border-color: rgba(255,119,0,0.3); }
+
+  .stakeholder-col-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  .stakeholder-col.gain .stakeholder-col-title { color: var(--accent-green); }
+  .stakeholder-col.left .stakeholder-col-title { color: var(--accent-red); }
+  .stakeholder-col.resist .stakeholder-col-title { color: var(--accent-orange); }
+
+  .stakeholder-item {
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: var(--text);
+    font-weight: 300;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stakeholder-item:last-child { border-bottom: none; }
+
+  .stakeholder-item-name {
+    font-weight: 700;
+    font-size: 0.72rem;
+    margin-bottom: 2px;
+  }
+
+  .stakeholder-item-reason {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  /* 実験設計テンプレート */
+  .experiment-result {
+    margin-top: 20px;
+    border: 1px solid rgba(0,255,136,0.2);
+    padding: 18px;
+    animation: fadeUp 0.3s ease;
+  }
+
+  .experiment-section {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .experiment-section:last-child { margin-bottom: 0; border-bottom: none; }
+
+  .experiment-section-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    color: var(--accent-green);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .experiment-content {
+    font-size: 0.8rem;
+    line-height: 1.7;
+    color: var(--text);
+    font-weight: 300;
+    white-space: pre-wrap;
+  }
+
+  /* 失敗ログ */
+  .failure-log-list { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+
+  .failure-log-item {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent-red);
+    padding: 12px 14px;
+    animation: fadeUp 0.25s ease;
+  }
+
+  .failure-log-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .failure-log-date {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.52rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+
+  .failure-log-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.5rem;
+    padding: 2px 7px;
+    border: 1px solid var(--accent-red);
+    color: var(--accent-red);
+    letter-spacing: 0.1em;
+  }
+
+  .failure-log-text {
+    font-size: 0.78rem;
+    color: var(--text);
+    line-height: 1.6;
+    font-weight: 300;
+    margin-bottom: 6px;
+  }
+
+  .failure-log-learning {
+    font-size: 0.72rem;
+    color: var(--accent-green);
+    line-height: 1.5;
+    font-weight: 300;
+    font-style: italic;
+  }
+
+  .failure-log-learning::before {
+    content: '→ ';
+    opacity: 0.6;
+  }
+
+  /* 松岡名言 */
+  .matsuka-quote-box {
+    max-width: 460px;
+    width: 100%;
+    border: 1px solid #ffe60044;
+    background: linear-gradient(135deg, rgba(255,230,0,0.05), rgba(255,119,0,0.05));
+    padding: 24px 28px 18px;
+  }
+  .matsuka-flame { font-size: 1.8rem; margin-bottom: 10px; display: block; animation: flicker 1.5s infinite alternate; }
+  @keyframes flicker {
+    0% { transform: scale(1) rotate(-3deg); }
+    50% { transform: scale(1.15) rotate(2deg); }
+    100% { transform: scale(1.05) rotate(-1deg); }
+  }
+  .matsuka-quote-text { font-size: 0.95rem; font-weight: 700; line-height: 1.8; color: #ffe600; letter-spacing: 0.04em; transition: opacity 0.2s; display: block; }
+  .matsuka-attribution { font-family: 'Space Mono', monospace; font-size: 0.55rem; color: var(--text-dim); letter-spacing: 0.2em; margin-top: 12px; text-align: right; display: block; }
+  .matsuka-refresh-btn { margin-top: 14px; background: transparent; border: 1px solid #ffe60033; color: #ffe60088; font-family: 'Space Mono', monospace; font-size: 0.55rem; letter-spacing: 0.15em; padding: 5px 12px; cursor: pointer; transition: all 0.2s; width: 100%; }
+  .matsuka-refresh-btn:hover { border-color: #ffe600; color: #ffe600; background: rgba(255,230,0,0.05); }
+
+  /* ウェルカム */
+  .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 40px; gap: 14px; color: var(--text-dim); }
+  .welcome-title { font-family: 'Bebas Neue', sans-serif; font-size: 2.8rem; letter-spacing: 0.1em; background: linear-gradient(135deg, var(--accent-red), var(--accent-orange), var(--accent-yellow), var(--accent-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; }
+  .welcome p { font-size: 0.75rem; font-weight: 300; max-width: 380px; line-height: 1.8; }
+  .welcome-tags { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+  .welcome-tag { font-family: 'Space Mono', monospace; font-size: 0.5rem; padding: 3px 10px; border: 1px solid; letter-spacing: 0.12em; }
+
+  /* スクロールバー */
+  .messages::-webkit-scrollbar, .tool-body::-webkit-scrollbar { width: 3px; }
+  .messages::-webkit-scrollbar-track, .tool-body::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb, .tool-body::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">FIRST PENGUIN</div>
+  <div class="tagline">先駆者育成システム<br>VANGUARD TRAINING SYSTEM</div>
+  <div class="header-tools">
+    <button class="tool-tab" id="tab-chat" onclick="switchTab('chat')" style="border-color:#555; color:#aaa;">CHAT</button>
+    <button class="tool-tab" id="tab-stakeholder" onclick="switchTab('stakeholder')">STAKEHOLDER MAP</button>
+    <button class="tool-tab" id="tab-experiment" onclick="switchTab('experiment')">実験設計</button>
+    <button class="tool-tab" id="tab-failure" onclick="switchTab('failure')">失敗ログ</button>
+  </div>
+</header>
+
+<div class="main">
+  <!-- サイドバー -->
+  <aside class="sidebar">
+    <div class="sidebar-title">// AGENTS</div>
+    <div class="agent-list" id="agentList"></div>
+    <button class="all-mode-btn" id="allModeBtn" onclick="selectAllMode()">◈ 全エージェント起動</button>
+  </aside>
+
+  <!-- コンテンツエリア -->
+  <div class="content-area">
+
+    <!-- チャットパネル -->
+    <div class="chat-panel" id="chatPanel">
+      <div class="agent-header" id="agentHeader">
+        <div class="agent-indicator" id="agentIndicator"></div>
+        <div class="agent-header-name" id="headerName" style="color:var(--text-dim)">エージェントを選択してください</div>
+        <div class="agent-header-role" id="headerRole">FIRST PENGUIN SYSTEM</div>
+        <button class="handoff-btn" id="handoffBtn" onclick="toggleHandoff()" style="display:none">引き継ぎ ▾</button>
+      </div>
+
+      <!-- 引き継ぎパネル -->
+      <div class="handoff-panel" id="handoffPanel">
+        <div class="handoff-title">// 別エージェントへ引き継ぐ</div>
+        <div class="handoff-agents" id="handoffAgents"></div>
+      </div>
+
+      <div class="messages" id="messages">
+        <div class="welcome" id="welcome">
+          <div class="welcome-title">FIRST PENGUIN</div>
+          <p>平均を棄却し、構造を読み、小さく試し、野心を持ち続ける。<br>左のエージェントを選択して対話を開始してください。</p>
+          <div class="welcome-tags">
+            <span class="welcome-tag" style="border-color:#ff2d2d;color:#ff2d2d">平均解棄却</span>
+            <span class="welcome-tag" style="border-color:#00d4ff;color:#00d4ff">背景読解</span>
+            <span class="welcome-tag" style="border-color:#00ff88;color:#00ff88">実践設計</span>
+            <span class="welcome-tag" style="border-color:#ffe600;color:#ffe600">先駆者コーチ</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <div class="input-row">
+          <textarea id="userInput" placeholder="アイデア・課題・状況を入力..." rows="1"
+            onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()">SEND</button>
+        </div>
+        <div class="input-hint">// ENTER で送信 / SHIFT+ENTER で改行</div>
+      </div>
+    </div>
+
+    <!-- ステークホルダーマップパネル -->
+    <div class="tool-panel" id="stakeholderPanel">
+      <div class="tool-header">
+        <div class="tool-header-title">STAKEHOLDER MAP</div>
+        <div class="tool-header-sub">// 誰が得し、誰が取り残されるか</div>
+      </div>
+      <div class="tool-body">
+        <div class="stakeholder-form">
+          <div class="form-group">
+            <div class="form-label">変えたい構造・課題</div>
+            <textarea class="form-textarea" id="sh-situation" placeholder="例：うちの部署は毎週月曜に無駄な全体会議がある。誰も何も決まらないのに2時間取られる。"></textarea>
+          </div>
+          <div class="form-group">
+            <div class="form-label">あなたが起こしたい変化</div>
+            <input class="form-input" id="sh-change" placeholder="例：会議をなくして非同期の情報共有に変える">
+          </div>
+          <button class="tool-btn" id="sh-btn" onclick="generateStakeholderMap()">MAP を生成する</button>
+        </div>
+        <div id="sh-result"></div>
+      </div>
+    </div>
+
+    <!-- 実験設計パネル -->
+    <div class="tool-panel" id="experimentPanel">
+      <div class="tool-header">
+        <div class="tool-header-title">実験設計テンプレート</div>
+        <div class="tool-header-sub">// 小さく試して、失敗を学びに変える</div>
+      </div>
+      <div class="tool-body">
+        <div class="stakeholder-form">
+          <div class="form-group">
+            <div class="form-label">試したいアイデア・仮説</div>
+            <textarea class="form-textarea" id="ex-idea" placeholder="例：週次会議をやめてSlackの非同期投稿に変えると、意思決定のスピードが上がる"></textarea>
+          </div>
+          <div class="form-group">
+            <div class="form-label">対象（誰に・どこで）</div>
+            <input class="form-input" id="ex-target" placeholder="例：自分のチーム5人、1ヶ月間">
+          </div>
+          <div class="form-group">
+            <div class="form-label">使えるリソース・制約</div>
+            <input class="form-input" id="ex-resource" placeholder="例：予算なし、上司の承認が必要、他チームへの影響不可">
+          </div>
+          <button class="tool-btn" id="ex-btn" onclick="generateExperiment()">実験を設計する</button>
+        </div>
+        <div id="ex-result"></div>
+      </div>
+    </div>
+
+    <!-- 失敗ログパネル -->
+    <div class="tool-panel" id="failurePanel">
+      <div class="tool-header">
+        <div class="tool-header-title">失敗ログ & 学習抽出</div>
+        <div class="tool-header-sub">// 失敗を先駆者の資産に変える</div>
+      </div>
+      <div class="tool-body">
+        <div class="stakeholder-form">
+          <div class="form-group">
+            <div class="form-label">何を試みたか</div>
+            <textarea class="form-textarea" id="fl-what" placeholder="例：会議をSlack非同期に変えようと上司に提案した"></textarea>
+          </div>
+          <div class="form-group">
+            <div class="form-label">何が起きたか（失敗・想定外）</div>
+            <textarea class="form-textarea" id="fl-result" placeholder="例：「前例がない」と一蹴された。他のメンバーも同調圧力で賛成してくれなかった"></textarea>
+          </div>
+          <button class="tool-btn" id="fl-btn" onclick="extractLearning()">学習を抽出する</button>
+        </div>
+        <div id="fl-result-area"></div>
+        <hr class="divider" id="fl-divider" style="display:none">
+        <div id="fl-log-list"></div>
+      </div>
+    </div>
+
+  </div><!-- /content-area -->
+</div>
+
+<script>
+const AGENTS = [
+  {
+    id: 'reject',
+    name: '平均解棄却エージェント',
+    short: '棄却',
+    color: '#ff2d2d',
+    role: 'AVERAGE REJECTION ENGINE',
+    desc: '凡庸な案を退け、極端まで考え抜かせる',
+    system: `あなたは「平均解棄却エージェント」です。
+役割: 入力されたアイデアが「よくある答え」「平均的な発想」であれば容赦なく退け、全く別の角度からのアプローチと極端な思考を要求する。
+
+先駆者の8つのルールを踏まえて行動する:
+① 常に疑問を持ち、違和感を握りつぶすな
+② 平凡な案を退け、極端まで考え抜け
+
+行動原則:
+- まず「これは平均解か？」を判定し、そうなら「棄却」と宣言する
+- 棄却理由を具体的に説明する（どこが凡庸か）
+- 棄却後は「逆方向の極端」「同方向の極端」の両方を提示して思考を広げさせる
+- 平均的でない部分があれば、そこをさらに振り切らせる
+- 口調は率直かつ鋭く。「惜しい」ではなく「棄却」
+
+出力形式:
+【判定】平均解 / 部分的に平均解 / 非平均解
+【棄却理由 or 評価】どこが凡庸か
+【極端① 逆方向】反対側へ振り切った場合
+【極端② 同方向】さらに振り切った場合
+【要求】次に考えるべき問い`
+  },
+  {
+    id: 'background',
+    name: '背景読解エージェント',
+    short: '読解',
+    color: '#00d4ff',
+    role: 'BACKGROUND READING NAVIGATOR',
+    desc: '構造・背景・取り残される人を読み解く',
+    system: `あなたは「背景読解エージェント」です。
+役割: 構造・背景・取り残される人を読み解き、変化の設計に必要な人間の力学を明らかにする。
+
+先駆者の8つのルールを踏まえて行動する:
+③ 構造で見ろ、個人で見るな
+④ 立場の違う人の背景を読め
+⑤ 誰が得し、誰が取り残されるか考えろ
+
+行動原則:
+- 「それは個人の問題か？構造の問題か？」を必ず判別する
+- 抵抗勢力を「悪者」として見ない。その人をそう動かしている力学・利害・恐れを読む
+- 「誰が得するか」だけでなく「誰が取り残されるか」を必ず問う
+- 個人攻撃は構造を温存することを指摘する
+- 口調は戦略家・設計者として冷静かつ精密
+
+出力形式:
+【構造診断】個人の問題か、構造の問題か
+【構造の壁】何が当たり前として固定されているか
+【抵抗勢力の背景】誰が・なぜ守るのか。その力学・利害・恐れ
+【得する人 / 取り残される人】変化が起きた場合の影響分布
+【レバーポイント】どこを動かすと構造が変わるか`
+  },
+  {
+    id: 'practice',
+    name: '実践設計エージェント',
+    short: '実践',
+    color: '#00ff88',
+    role: 'PRACTICE DESIGN AGENT',
+    desc: '小さく試す実験を設計し、失敗を学びに変える',
+    system: `あなたは「実践設計エージェント」です。
+役割: 思考を行動に変え、小さな実験を設計し、失敗から学ぶサイクルを回す。
+
+先駆者の8つのルールを踏まえて行動する:
+⑥ 自分で実践してから語れ
+⑦ 小さく試して、失敗を学びに変えろ
+
+行動原則:
+- 「まず自分がやれることは何か？」から始める
+- 大きな変革より「今週できる最小実験」を優先して設計する
+- 「何を・誰に・いつまでに・何で測る」を具体的に定義する
+- 失敗を想定し、「何が分かれば成功か」を先に決める
+- 「実践していない人の言葉は構造を動かせない」を常に意識させる
+- 口調は実務家として具体的かつ行動指向
+
+出力形式:
+【最小実験の設計】今週できる具体的な一手
+【測定基準】何が起きれば仮説が正しいか
+【失敗シナリオ】何が起きたら学びに変えるか
+【次の仮説】この実験から何を学ぶか`
+  },
+  {
+    id: 'coach',
+    name: '先駆者育成コーチ',
+    short: 'コーチ',
+    color: '#ffe600',
+    role: 'VANGUARD DEVELOPMENT COACH',
+    desc: '野心を燃やし、不合理な秩序を書き換える意志を維持する',
+    system: `あなたは「先駆者育成コーチ」です。
+キャラクター: 松岡修造のように、魂から燃え上がるような熱量で相手を鼓舞する伝説のコーチ。
+
+先駆者の8つのルールを踏まえて行動する:
+⑧ 野心を持ち続け、不合理な秩序を書き換えろ
+
+行動原則:
+- 常に「できる！」「君ならやれる！」から始まる。諦めという概念がない
+- 問題点も「それは伸びしろだ！」とポジティブに変換する
+- 感嘆符を惜しまない。熱量をそのまま文字にする
+- 相手の言葉の中に必ず「光る部分」を見つけて褒め上げる
+- 野心を引き出す問いを投げかける。「本当はどうしたいのか？」「10年後どうなっていたいか？」
+- 最後は必ず「さあ、行こう！」「絶対にできる！」で締める
+- 口調: 熱血・魂・炎・情熱・全力・可能性・信じる・絶対・必ず
+
+出力形式:
+【燃え上がれ！】状況をポジティブに再解釈して全力で鼓舞
+【ここが光ってる！】必ず良い点・伸びしろを発見して褒め倒す
+【野心の問い】「本当はどうしたいのか」を引き出す問い
+【次の一手！】今すぐ踏み出せる具体的なアクション
+【魂の叫び】最後に魂から絞り出す一言`
+  }
+];
+
+const MATSUKA_QUOTES = [
+  "熱くなれ！熱くなれない人間に、人を感動させることはできない！",
+  "諦めた瞬間、試合終了だよ。",
+  "できると思えばできる、できないと思えばできない。これは、ゆるぎない絶対的な法則だ。",
+  "失敗して反省することは大事だけど、落ち込む必要はない。",
+  "自分に感動できる人間が、人にも感動を与えられる。",
+  "やってみなければわからない！やらないと絶対わからない！",
+  "強くなりたければ、まず自分が弱いことを認めろ！",
+  "限界を超えろ！その先に、本当の自分がいる！",
+  "一歩踏み出す勇気。その一歩が、すべてを変える！",
+  "どんな状況でも、希望の光は必ずある！探せ！見つけろ！",
+  "汗をかくことを恐れるな！汗の先に栄光がある！",
+  "君はもっとできる！絶対にもっとできる！信じろ、自分を！",
+  "今日の自分は、昨日の自分より強い。それでいい！",
+  "熱意があれば、扉は必ず開く！",
+  "失敗は終わりじゃない。失敗は、次の成功へのパスポートだ！",
+];
+
+let currentAgent = null;
+let allMode = false;
+let isLoading = false;
+let conversationHistory = {};
+let currentTab = 'chat';
+let failureLogs = [];
+let handoffOpen = false;
+
+// 初期化
+function init() {
+  AGENTS.forEach(a => { conversationHistory[a.id] = []; });
+
+  const list = document.getElementById('agentList');
+  AGENTS.forEach((agent, i) => {
+    const card = document.createElement('div');
+    card.className = 'agent-card';
+    card.id = `card-${agent.id}`;
+    card.style.setProperty('--agent-color', agent.color);
+    card.onclick = () => selectAgent(agent);
+    card.innerHTML = `
+      <div class="agent-num">${String(i+1).padStart(2,'0')}</div>
+      <div class="agent-name">${agent.name}</div>
+      <div class="agent-desc">${agent.desc}</div>
+    `;
+    list.appendChild(card);
+  });
+
+  // 引き継ぎパネルのボタン生成
+  const handoffAgents = document.getElementById('handoffAgents');
+  AGENTS.forEach(agent => {
+    const btn = document.createElement('button');
+    btn.className = 'handoff-agent-btn';
+    btn.id = `handoff-${agent.id}`;
+    btn.onclick = () => handoffTo(agent);
+    btn.innerHTML = `<div class="handoff-dot" style="background:${agent.color}"></div>${agent.name}`;
+    handoffAgents.appendChild(btn);
+  });
+
+  switchTab('chat');
+  renderFailureLogs();
+}
+
+// タブ切り替え
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('chatPanel').style.display = tab === 'chat' ? 'flex' : 'none';
+  document.getElementById('stakeholderPanel').classList.toggle('active', tab === 'stakeholder');
+  document.getElementById('experimentPanel').classList.toggle('active', tab === 'experiment');
+  document.getElementById('failurePanel').classList.toggle('active', tab === 'failure');
+
+  document.querySelectorAll('.tool-tab').forEach(t => t.classList.remove('active'));
+  const activeTab = document.getElementById(`tab-${tab}`);
+  if (activeTab) activeTab.classList.add('active');
+
+  if (tab === 'failure') renderFailureLogs();
+  closeHandoff();
+}
+
+function selectAgent(agent) {
+  allMode = false;
+  currentAgent = agent;
+  document.getElementById('allModeBtn').classList.remove('active');
+  document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('active'));
+  document.getElementById(`card-${agent.id}`).classList.add('active');
+
+  const ind = document.getElementById('agentIndicator');
+  ind.style.background = agent.color;
+  ind.style.boxShadow = `0 0 8px ${agent.color}`;
+
+  document.getElementById('headerName').textContent = agent.name;
+  document.getElementById('headerName').style.color = agent.color;
+  document.getElementById('headerRole').textContent = agent.role;
+  document.getElementById('handoffBtn').style.display = 'block';
+
+  // 引き継ぎパネルの自分ボタンを無効化
+  AGENTS.forEach(a => {
+    const btn = document.getElementById(`handoff-${a.id}`);
+    if (btn) btn.style.opacity = a.id === agent.id ? '0.3' : '1';
+    if (btn) btn.disabled = a.id === agent.id;
+  });
+
+  document.getElementById('sendBtn').style.setProperty('--btn-color', agent.color);
+  document.querySelector('textarea').style.setProperty('--focus-color', agent.color);
+
+  hideWelcome();
+  closeHandoff();
+  switchTab('chat');
+  renderMessages();
+}
+
+function selectAllMode() {
+  allMode = true;
+  currentAgent = null;
+  document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('allModeBtn').classList.add('active');
+
+  const yellow = '#ffe600';
+  const ind = document.getElementById('agentIndicator');
+  ind.style.background = yellow;
+  ind.style.boxShadow = `0 0 8px ${yellow}`;
+
+  document.getElementById('headerName').textContent = '全エージェント同時起動';
+  document.getElementById('headerName').style.color = yellow;
+  document.getElementById('headerRole').textContent = 'ALL AGENTS ACTIVE';
+  document.getElementById('handoffBtn').style.display = 'none';
+  document.getElementById('sendBtn').style.setProperty('--btn-color', yellow);
+
+  hideWelcome();
+  closeHandoff();
+  switchTab('chat');
+  document.getElementById('messages').innerHTML = `
+    <div style="text-align:center;color:var(--text-dim);font-size:0.65rem;font-family:'Space Mono',monospace;letter-spacing:0.15em;padding:20px 0;">
+      // 全エージェントに同時に問いかけます
+    </div>
+  `;
+}
+
+// 引き継ぎ
+function toggleHandoff() {
+  handoffOpen = !handoffOpen;
+  document.getElementById('handoffPanel').classList.toggle('open', handoffOpen);
+}
+
+function closeHandoff() {
+  handoffOpen = false;
+  document.getElementById('handoffPanel').classList.remove('open');
+}
+
+function handoffTo(targetAgent) {
+  if (!currentAgent) return;
+  const fromAgent = currentAgent;
+
+  // 直近の会話サマリーを引き継ぎコンテキストとして渡す
+  const fromHistory = conversationHistory[fromAgent.id];
+  if (fromHistory.length === 0) {
+    selectAgent(targetAgent);
+    return;
+  }
+
+  // 最後のやりとりを引き継ぎ文脈として注入
+  const lastExchange = fromHistory.slice(-4);
+  const context = lastExchange.map(m =>
+    `[${m.role === 'user' ? 'ユーザー' : fromAgent.name}]: ${m.content}`
+  ).join('\n');
+
+  const handoffMessage = {
+    role: 'user',
+    content: `【引き継ぎ】${fromAgent.name}との対話から引き継いだ文脈:\n${context}\n\nこの文脈を踏まえて、あなたの視点で深掘りしてください。`
+  };
+
+  // 対象エージェントの履歴に引き継ぎを追加
+  if (conversationHistory[targetAgent.id].length === 0) {
+    conversationHistory[targetAgent.id].push(handoffMessage);
+  }
+
+  selectAgent(targetAgent);
+
+  // 引き継ぎ通知を表示
+  const msgs = document.getElementById('messages');
+  const notice = document.createElement('div');
+  notice.className = 'handoff-notice';
+  notice.textContent = `← ${fromAgent.name} からの引き継ぎを受け取りました`;
+  msgs.appendChild(notice);
+  scrollToBottom();
+
+  // 引き継ぎコンテキストで自動返答
+  setTimeout(() => autoHandoffReply(targetAgent, handoffMessage), 300);
+}
+
+async function autoHandoffReply(agent, handoffMsg) {
+  const loading = appendLoadingBubble(agent);
+  try {
+    const reply = await callClaude(agent, [handoffMsg]);
+    conversationHistory[agent.id].push({ role: 'assistant', content: reply });
+    removeLoading(agent.id);
+    appendAgentBubble(agent, reply);
+  } catch (e) {
+    removeLoading(agent.id);
+    appendAgentBubble(agent, `[エラー] ${e.message}`);
+  }
+}
+
+function hideWelcome() {
+  const w = document.getElementById('welcome');
+  if (w) w.remove();
+}
+
+function getRandomQuote() {
+  return MATSUKA_QUOTES[Math.floor(Math.random() * MATSUKA_QUOTES.length)];
+}
+
+function refreshQuote() {
+  const box = document.querySelector('.matsuka-quote-text');
+  if (box) {
+    box.style.opacity = '0';
+    setTimeout(() => { box.textContent = getRandomQuote(); box.style.opacity = '1'; }, 200);
+  }
+}
+
+function renderMessages() {
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = '';
+  if (!currentAgent) return;
+
+  const history = conversationHistory[currentAgent.id];
+  if (history.length === 0) {
+    if (currentAgent.id === 'coach') {
+      const quote = getRandomQuote();
+      msgs.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:32px;gap:20px;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:0.65rem;letter-spacing:0.3em;color:#ffe60066;">// 松岡修造 名言</div>
+          <div class="matsuka-quote-box">
+            <div class="matsuka-flame">🔥</div>
+            <div class="matsuka-quote-text">${escHtml(quote)}</div>
+            <div class="matsuka-attribution">— 松岡修造</div>
+            <button class="matsuka-refresh-btn" onclick="refreshQuote()">別の名言を見る ↻</button>
+          </div>
+          <div style="color:var(--text-dim);font-size:0.65rem;font-family:'Space Mono',monospace;letter-spacing:0.15em;">// 先駆者育成コーチ が待機中</div>
+        </div>
+      `;
+    } else {
+      msgs.innerHTML = `<div style="text-align:center;color:var(--text-dim);font-size:0.65rem;font-family:'Space Mono',monospace;letter-spacing:0.15em;padding:20px 0;">// ${currentAgent.name} が待機中</div>`;
+    }
+    return;
+  }
+
+  history.forEach(msg => {
+    if (msg.role === 'user') appendUserBubble(msg.content, false);
+    else appendAgentBubble(currentAgent, msg.content, false);
+  });
+  scrollToBottom();
+}
+
+function appendUserBubble(text, animate = true) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'message user';
+  div.innerHTML = `
+    <div class="avatar user-av">YOU</div>
+    <div class="bubble user-bubble"><div class="bubble-content">${escHtml(text)}</div></div>
+  `;
+  msgs.appendChild(div);
+  scrollToBottom();
+}
+
+function appendAgentBubble(agent, text, animate = true) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'message';
+  div.innerHTML = `
+    <div class="avatar" style="background:color-mix(in srgb,${agent.color} 15%,transparent);color:${agent.color};border:1px solid ${agent.color}40;font-size:0.6rem;">${agent.short}</div>
+    <div class="bubble agent-bubble" style="--msg-color:${agent.color}">
+      <div class="agent-label">${agent.name}</div>
+      <div class="bubble-content">${escHtml(text)}</div>
+    </div>
+  `;
+  msgs.appendChild(div);
+  scrollToBottom();
+}
+
+function appendLoadingBubble(agent) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'message';
+  div.id = `loading-${agent.id}`;
+  div.innerHTML = `
+    <div class="avatar" style="background:color-mix(in srgb,${agent.color} 15%,transparent);color:${agent.color};border:1px solid ${agent.color}40;font-size:0.6rem;">${agent.short}</div>
+    <div class="bubble agent-bubble" style="--msg-color:${agent.color}">
+      <div class="agent-label">${agent.name}</div>
+      <div class="loading-dots" style="--msg-color:${agent.color}"><span></span><span></span><span></span></div>
+    </div>
+  `;
+  msgs.appendChild(div);
+  scrollToBottom();
+  return div;
+}
+
+function removeLoading(agentId) {
+  const el = document.getElementById(`loading-${agentId}`);
+  if (el) el.remove();
+}
+
+async function callClaude(agent, messages) {
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system: agent.system,
+      messages
+    })
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `API error: ${response.status}`);
+  }
+  const data = await response.json();
+  return data.text;
+}
+
+async function callClaudeRaw(systemPrompt, userContent) {
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userContent }]
+    })
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `API error: ${response.status}`);
+  }
+  const data = await response.json();
+  return data.text;
+}
+
+async function sendMessage() {
+  if (isLoading) return;
+  if (!currentAgent && !allMode) { alert('エージェントを選択してください'); return; }
+
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  isLoading = true;
+  document.getElementById('sendBtn').disabled = true;
+  closeHandoff();
+
+  appendUserBubble(text);
+
+  if (allMode) {
+    const promises = AGENTS.map(async (agent) => {
+      appendLoadingBubble(agent);
+      try {
+        const history = conversationHistory[agent.id];
+        history.push({ role: 'user', content: text });
+        const reply = await callClaude(agent, history);
+        history.push({ role: 'assistant', content: reply });
+        removeLoading(agent.id);
+        appendAgentBubble(agent, reply);
+      } catch (e) {
+        removeLoading(agent.id);
+        appendAgentBubble(agent, `[エラー] ${e.message}`);
+      }
+    });
+    await Promise.all(promises);
+  } else {
+    const agent = currentAgent;
+    appendLoadingBubble(agent);
+    try {
+      const history = conversationHistory[agent.id];
+      history.push({ role: 'user', content: text });
+      const reply = await callClaude(agent, history);
+      history.push({ role: 'assistant', content: reply });
+      removeLoading(agent.id);
+      appendAgentBubble(agent, reply);
+    } catch (e) {
+      removeLoading(agent.id);
+      appendAgentBubble(agent, `[エラー] ${e.message}`);
+    }
+  }
+
+  isLoading = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+// ===== ステークホルダーマップ =====
+async function generateStakeholderMap() {
+  const situation = document.getElementById('sh-situation').value.trim();
+  const change = document.getElementById('sh-change').value.trim();
+  if (!situation || !change) { alert('すべての項目を入力してください'); return; }
+
+  const btn = document.getElementById('sh-btn');
+  btn.disabled = true;
+  btn.textContent = '生成中...';
+  document.getElementById('sh-result').innerHTML = '';
+
+  const systemPrompt = `あなたはステークホルダー分析の専門家です。
+与えられた状況と変化に対して、関係者を「得する人」「取り残される人」「抵抗する人」の3カテゴリに分類し、JSON形式で返してください。
+
+必ず以下のJSON形式のみで返してください（マークダウン不要）:
+{
+  "gain": [{"name": "人物/グループ名", "reason": "なぜ得するか（具体的に）"}],
+  "left": [{"name": "人物/グループ名", "reason": "なぜ取り残されるか（具体的に）"}],
+  "resist": [{"name": "人物/グループ名", "reason": "なぜ抵抗するか。その人をそう動かしている力学・利害・恐れ"}]
+}
+各カテゴリ2〜4件。日本語で答えること。`;
+
+  try {
+    const raw = await callClaudeRaw(systemPrompt, `状況: ${situation}\n変えたいこと: ${change}`);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const data = JSON.parse(clean);
+
+    const result = document.getElementById('sh-result');
+    result.innerHTML = `
+      <div class="stakeholder-map">
+        <div class="stakeholder-col gain">
+          <div class="stakeholder-col-title">✓ 得する人</div>
+          ${data.gain.map(i => `<div class="stakeholder-item"><div class="stakeholder-item-name">${escHtml(i.name)}</div><div class="stakeholder-item-reason">${escHtml(i.reason)}</div></div>`).join('')}
+        </div>
+        <div class="stakeholder-col left">
+          <div class="stakeholder-col-title">✗ 取り残される人</div>
+          ${data.left.map(i => `<div class="stakeholder-item"><div class="stakeholder-item-name">${escHtml(i.name)}</div><div class="stakeholder-item-reason">${escHtml(i.reason)}</div></div>`).join('')}
+        </div>
+        <div class="stakeholder-col resist">
+          <div class="stakeholder-col-title">⚡ 抵抗する人</div>
+          ${data.resist.map(i => `<div class="stakeholder-item"><div class="stakeholder-item-name">${escHtml(i.name)}</div><div class="stakeholder-item-reason">${escHtml(i.reason)}</div></div>`).join('')}
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    document.getElementById('sh-result').innerHTML = `<div style="color:var(--accent-red);font-size:0.8rem;margin-top:16px;">[エラー] ${e.message}</div>`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'MAP を生成する';
+}
+
+// ===== 実験設計 =====
+async function generateExperiment() {
+  const idea = document.getElementById('ex-idea').value.trim();
+  const target = document.getElementById('ex-target').value.trim();
+  const resource = document.getElementById('ex-resource').value.trim();
+  if (!idea || !target) { alert('アイデアと対象を入力してください'); return; }
+
+  const btn = document.getElementById('ex-btn');
+  btn.disabled = true;
+  btn.textContent = '設計中...';
+  document.getElementById('ex-result').innerHTML = '';
+
+  const systemPrompt = `あなたは実験設計の専門家です。先駆者が「小さく試して、失敗を学びに変える」ための最小実験を設計します。
+以下のJSON形式のみで返してください（マークダウン不要）:
+{
+  "min_experiment": "今週できる具体的な最小実験（何を・誰に・いつまでに）",
+  "measure": "成功/失敗を判断する測定基準（具体的な数値や観察事項）",
+  "failure_scenario": "失敗した場合に何が分かるか。どう学びに変えるか",
+  "next_hypothesis": "この実験から得られる次の仮説",
+  "watch_out": "この実験で陥りやすい罠・注意点"
+}
+日本語で答えること。具体的に、行動可能なレベルで書くこと。`;
+
+  try {
+    const raw = await callClaudeRaw(systemPrompt, `アイデア: ${idea}\n対象: ${target}\nリソース・制約: ${resource}`);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const data = JSON.parse(clean);
+
+    document.getElementById('ex-result').innerHTML = `
+      <div class="experiment-result">
+        <div class="experiment-section">
+          <div class="experiment-section-title">▸ 最小実験の設計</div>
+          <div class="experiment-content">${escHtml(data.min_experiment)}</div>
+        </div>
+        <div class="experiment-section">
+          <div class="experiment-section-title">▸ 測定基準</div>
+          <div class="experiment-content">${escHtml(data.measure)}</div>
+        </div>
+        <div class="experiment-section">
+          <div class="experiment-section-title">▸ 失敗シナリオと学び</div>
+          <div class="experiment-content">${escHtml(data.failure_scenario)}</div>
+        </div>
+        <div class="experiment-section">
+          <div class="experiment-section-title">▸ 次の仮説</div>
+          <div class="experiment-content">${escHtml(data.next_hypothesis)}</div>
+        </div>
+        <div class="experiment-section">
+          <div class="experiment-section-title">▸ 注意点</div>
+          <div class="experiment-content">${escHtml(data.watch_out)}</div>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    document.getElementById('ex-result').innerHTML = `<div style="color:var(--accent-red);font-size:0.8rem;margin-top:16px;">[エラー] ${e.message}</div>`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = '実験を設計する';
+}
+
+// ===== 失敗ログ =====
+async function extractLearning() {
+  const what = document.getElementById('fl-what').value.trim();
+  const result = document.getElementById('fl-result').value.trim();
+  if (!what || !result) { alert('すべての項目を入力してください'); return; }
+
+  const btn = document.getElementById('fl-btn');
+  btn.disabled = true;
+  btn.textContent = '抽出中...';
+  document.getElementById('fl-result-area').innerHTML = '';
+
+  const systemPrompt = `あなたは先駆者育成の専門家です。失敗体験から構造的な学びを抽出します。
+以下のJSON形式のみで返してください（マークダウン不要）:
+{
+  "learning": "この失敗から抽出できる本質的な学び（先駆者視点で）",
+  "structure": "この失敗が示す構造・パターン（個人の失敗でなく構造として見ると？）",
+  "next_action": "この学びを活かした次の具体的な行動"
+}
+日本語で。失敗を責めず、構造として捉え直すこと。`;
+
+  try {
+    const raw = await callClaudeRaw(systemPrompt, `試みたこと: ${what}\n起きたこと: ${result}`);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const data = JSON.parse(clean);
+
+    const log = {
+      id: Date.now(),
+      date: new Date().toLocaleDateString('ja-JP'),
+      what,
+      result,
+      learning: data.learning,
+      structure: data.structure,
+      next_action: data.next_action
+    };
+    failureLogs.unshift(log);
+
+    document.getElementById('fl-result-area').innerHTML = `
+      <div style="margin-top:16px;padding:14px;border:1px solid rgba(0,255,136,0.2);border-left:3px solid var(--accent-green);animation:fadeUp 0.3s ease;">
+        <div style="font-family:'Space Mono',monospace;font-size:0.52rem;letter-spacing:0.2em;color:var(--accent-green);margin-bottom:10px;">// 学習抽出完了</div>
+        <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:4px;font-family:'Space Mono',monospace;letter-spacing:0.15em;">本質的な学び</div>
+        <div style="font-size:0.82rem;line-height:1.7;margin-bottom:12px;">${escHtml(data.learning)}</div>
+        <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:4px;font-family:'Space Mono',monospace;letter-spacing:0.15em;">構造として見ると</div>
+        <div style="font-size:0.82rem;line-height:1.7;margin-bottom:12px;">${escHtml(data.structure)}</div>
+        <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:4px;font-family:'Space Mono',monospace;letter-spacing:0.15em;">次のアクション</div>
+        <div style="font-size:0.82rem;line-height:1.7;color:var(--accent-green);">${escHtml(data.next_action)}</div>
+      </div>
+    `;
+
+    document.getElementById('fl-what').value = '';
+    document.getElementById('fl-result').value = '';
+    document.getElementById('fl-divider').style.display = 'block';
+    renderFailureLogs();
+
+  } catch (e) {
+    document.getElementById('fl-result-area').innerHTML = `<div style="color:var(--accent-red);font-size:0.8rem;margin-top:16px;">[エラー] ${e.message}</div>`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = '学習を抽出する';
+}
+
+function renderFailureLogs() {
+  const list = document.getElementById('fl-log-list');
+  if (!list) return;
+  if (failureLogs.length === 0) {
+    list.innerHTML = '';
+    return;
+  }
+  document.getElementById('fl-divider').style.display = 'block';
+  list.innerHTML = `
+    <div style="font-family:'Space Mono',monospace;font-size:0.52rem;letter-spacing:0.2em;color:var(--text-dim);margin-bottom:10px;">// 失敗ログ一覧 (${failureLogs.length}件)</div>
+    <div class="failure-log-list">
+      ${failureLogs.map(log => `
+        <div class="failure-log-item">
+          <div class="failure-log-meta">
+            <span class="failure-log-date">${log.date}</span>
+            <span class="failure-log-tag">LOGGED</span>
+          </div>
+          <div class="failure-log-text">${escHtml(log.what)}</div>
+          <div class="failure-log-learning">${escHtml(log.learning)}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function scrollToBottom() {
+  const msgs = document.getElementById('messages');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+// 外クリックで引き継ぎパネルを閉じる
+document.addEventListener('click', e => {
+  if (handoffOpen && !e.target.closest('#handoffPanel') && !e.target.closest('#handoffBtn')) {
+    closeHandoff();
+  }
+});
+
+init();
+</script>
+</body>
+</html>
